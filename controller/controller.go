@@ -8,7 +8,11 @@ package controller
 import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"html/template"
 	"marilynWorkout/config"
+	"marilynWorkout/controller/home"
+	"marilynWorkout/controller/plans/nutrition"
+	"marilynWorkout/controller/plans/workout"
 	"net/http"
 )
 
@@ -19,10 +23,13 @@ func Controllers(env *config.Env) http.Handler {
 	mux.Use(middleware.Logger)
 	mux.Use(env.Session.LoadAndSave)
 
-	//mux.Mount("/", home.Home(env))
-	//mux.Mount("/user", user.User(env))
+	mux.Handle("/", HomeHandler(env))
+
+	mux.Mount("/home", home.HomeController(env))
+	mux.Mount("/plan_nutrition", nutrition.NutritionPlane(env))
+	mux.Mount("/plan_workout", workout.WorkOutPlane(env))
+
 	//mux.Mount("/book", book.Book(env))
-	//mux.Handle("/homeError", controllers.Home(env))
 	//mux.Mount("/category", item.Home(env))
 	//mux.Mount("/customer", customer.Customer(env))
 	//mux.Mount("/user", users.User(env))
@@ -36,4 +43,22 @@ func Controllers(env *config.Env) http.Handler {
 	// "/static" prefix before the request reaches the file server.
 	mux.Mount("/assets/", http.StripPrefix("/assets", fileServer))
 	return mux
+}
+func HomeHandler(app *config.Env) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		files := []string{
+			app.Path + "index.html",
+			app.Path + "template/header.html",
+			//app.Path + "base_templates/footer.html",
+		}
+		ts, err := template.ParseFiles(files...)
+		if err != nil {
+			app.ErrorLog.Println(err.Error())
+			return
+		}
+		err = ts.Execute(w, nil)
+		if err != nil {
+			app.ErrorLog.Println(err.Error())
+		}
+	}
 }
